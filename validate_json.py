@@ -3,7 +3,7 @@
 import argparse
 import json
 from pathlib import Path
-
+import datetime
 
 def operation(
     *,
@@ -21,14 +21,15 @@ def operation(
                 "name",
                 "url",
                 "description",
-                "description",
                 "added",
                 "tags",
             ]:
-                assert required_key in extension
+                assert required_key in extension, f"missing key: {required_key}"
 
             for _tag in extension["tags"]:
                 assert _tag in tags
+
+            datetime.date.fromisoformat(extension['added']), "Incorrect data format, should be YYYY-MM-DD"
 
 
 def get_opts() -> argparse.Namespace:
@@ -50,5 +51,34 @@ def main() -> None:
     )
 
 
+with open('tags.json', 'r') as f:
+    tags = json.load(f)
+
+tags_keys = tags.keys()
+
+def validate_extension_entry(file: Path):
+
+    with open(file, 'r') as f:
+        extension = json.load(f)
+    for required_key in [
+        "name",
+        "url",
+        "description",
+        "tags",
+    ]:
+        assert required_key in extension, f"{file} missing key: {required_key}"
+
+    for _tag in extension["tags"]:
+        assert _tag in tags, f'{file} tag: "{str(_tag)}" is not a valid tag'
+
+    if extension.get('added'):
+        try:
+            datetime.date.fromisoformat(extension.get('added'))
+        except:
+            assert False, f"{file} Incorrect added data format, YYYY-MM-DD"
+
 if __name__ == "__main__":
+    for f in Path('extensions').iterdir():
+        if f.is_file() and f.suffix.lower() == '.json':        
+            validate_extension_entry(f)
     main()
